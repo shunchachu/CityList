@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>城事清單 CityList - 網頁展示版</title>
+    <!-- 使用 100% 穩定版 Tailwind CSS v3 CDN，確保所有樣式與元件完美渲染 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 隱藏滾動條但保持功能 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 flex justify-center items-center min-h-screen">
+
+    <!-- 模擬手機外框容器，方便網頁瀏覽與 GitHub 成果展示 -->
+    <div class="w-full max-w-md h-[844px] bg-gray-50 rounded-[40px] shadow-2xl overflow-hidden relative border-8 border-gray-800 flex flex-col">
+        
+        <!-- ========================================== -->
+        <!-- 畫面 0：登入介面 (Login Screen) -->
+        <!-- ========================================== -->
+        <div id="loginScreen" class="flex-1 bg-[#4A82A6] flex flex-col justify-center px-8 relative z-10">
+            <div class="flex flex-col items-center mb-10 text-white">
+                <!-- 完美還原：半透明圈圈 + 智慧型 Logo 偵測機制 -->
+                <div class="w-24 h-24 rounded-full bg-white/20 flex justify-center items-center mb-5 shadow-inner overflow-hidden">
+                    <!-- 自動讀取 assets/logo.jpg，若檔案不存在則自動切換為內建的高質感地圖圖示 -->
+                    <img id="loginLogoImg" src="assets/logo.jpg" alt="Logo" class="w-full h-full object-cover" onerror="this.style.display='none'; document.getElementById('fallbackIcon').classList.remove('hidden');">
+                    <i id="fallbackIcon" class="fa-solid fa-map-location-dot text-4xl text-white hidden"></i>
+                </div>
+                <h1 class="text-3xl font-bold tracking-wide">城事清單 CityList</h1>
+                <p class="text-white/80 text-sm mt-2">標記角落，點亮城市</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-100">
+                <div class="flex items-center bg-gray-100 rounded-xl px-4 mb-4 border border-gray-200/50">
+                    <i class="fa-regular fa-envelope text-gray-400 mr-3"></i>
+                    <input type="email" placeholder="電子郵件" class="w-full py-3 bg-transparent text-sm outline-none text-gray-700" value="citizen@citylist.org">
+                </div>
+                
+                <div class="flex items-center bg-gray-100 rounded-xl px-4 mb-6 border border-gray-200/50">
+                    <i class="fa-solid fa-lock text-gray-400 mr-3"></i>
+                    <input type="password" placeholder="密碼" class="w-full py-3 bg-transparent text-sm outline-none text-gray-700" value="••••••••">
+                </div>
+
+                <button onclick="switchView('home')" class="w-full bg-[#4A82A6] text-white py-3.5 rounded-xl font-bold transition-all active:scale-[0.98] hover:bg-[#3B6B8A] shadow-md cursor-pointer">
+                    登 入
+                </button>
+
+                <div class="flex justify-between items-center mt-6 px-2 text-xs font-medium text-gray-500">
+                    <a href="#" class="hover:text-gray-700">註冊新帳號</a>
+                    <span class="text-gray-300">|</span>
+                    <a href="#" class="hover:text-gray-700">忘記密碼？</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 畫面 1：主頁面 (Home Screen) -->
+        <!-- ========================================== -->
+        <div id="homeScreen" class="hidden flex-1 flex flex-col h-full overflow-hidden bg-gray-50">
+            <!-- 頂部 Header -->
+            <div class="bg-white p-4 shadow-sm border-b border-gray-100">
+                <!-- 雙模式切換 Toggle -->
+                <div class="flex bg-gray-100 rounded-xl p-1 mb-3">
+                    <button id="trafficBtn" onclick="setMode('traffic')" class="flex-1 py-2.5 text-center font-bold text-sm rounded-lg transition-all bg-[#4A82A6] text-white cursor-pointer">
+                        🚦 交通模式
+                    </button>
+                    <button id="tourismBtn" onclick="setMode('tourism')" class="flex-1 py-2.5 text-center font-bold text-sm rounded-lg transition-all text-gray-500 cursor-pointer">
+                        🏞️ 觀光模式
+                    </button>
+                </div>
+
+                <!-- 狀態篩選器 -->
+                <div class="flex items-center">
+                    <span class="text-xs font-bold text-gray-400 mr-2 shrink-0">顯示：</span>
+                    <div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                        <button onclick="setFilter('all')" id="filter-all" class="px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-full cursor-pointer transition-all">全部</button>
+                        <button onclick="setFilter('bad')" id="filter-bad" class="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full flex items-center gap-1.5 cursor-pointer transition-all"><span class="w-2 h-2 rounded-full bg-red-500"></span>差</button>
+                        <button onclick="setFilter('good')" id="filter-good" class="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full flex items-center gap-1.5 cursor-pointer transition-all"><span class="w-2 h-2 rounded-full bg-green-500"></span>良</button>
+                        <button onclick="setFilter('improved')" id="filter-improved" class="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full flex items-center gap-1.5 cursor-pointer transition-all"><span class="w-2 h-2 rounded-full bg-blue-500"></span>已改善</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主內容滾動區 -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar pb-24">
+                <!-- 地圖佔位區域 -->
+                <div class="bg-white rounded-2xl p-4 border border-gray-200/60 shadow-sm relative h-56 flex flex-col justify-center items-center text-center">
+                    <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm border border-gray-100 px-3 py-1.5 rounded-full shadow-sm">
+                        <span id="mapBadge" class="text-xs font-bold text-gray-700">🚦 交通模式</span>
+                    </div>
+                    <i id="mapMarkerIcon" class="fa-solid fa-location-crosshairs text-4xl text-[#4A82A6] animate-pulse"></i>
+                    <h3 class="text-base font-bold text-gray-800 mt-2">互動地圖載入區</h3>
+                    <p class="text-xs text-gray-400 mt-1">定位座標：25.034262, 121.446059</p>
+                    
+                    <div class="absolute bottom-3 left-3 flex gap-3 text-[11px] font-semibold text-gray-500 bg-white/80 px-2 py-1 rounded">
+                        <span>🔴 差</span><span>🟢 良</span><span>🔵 已改善</span>
+                    </div>
+                </div>
+
+                <!-- 最近動態清單 -->
+                <div>
+                    <h2 class="text-base font-bold text-gray-800 mb-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-thumbtack text-gray-400 text-sm"></i> 最近動態
+                    </h2>
+                    <div id="postsList" class="space-y-3">
+                        <!-- 動態由此處 JavaScript 渲染 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部導航欄 -->
+            <div class="absolute bottom-0 inset-x-0 bg-white border-t border-gray-100 flex py-2 shadow-lg z-20">
+                <button class="flex-1 flex flex-col items-center justify-center text-[#4A82A6] cursor-pointer">
+                    <i class="fa-solid fa-house text-lg"></i>
+                    <span class="text-[10px] font-bold mt-1">首頁</span>
+                </button>
+                <button onclick="switchView('login')" class="flex-1 flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:text-gray-600">
+                    <i class="fa-regular fa-user text-lg"></i>
+                    <span class="text-[10px] font-bold mt-1">個人中心</span>
+                </button>
+            </div>
+
+            <!-- 懸浮新增按鈕 (FAB) -->
+            <button onclick="toggleModal('addModal', true)" id="fabBtn" class="absolute right-5 bottom-20 w-14 h-14 bg-[#4A82A6] rounded-full flex justify-center items-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer z-30">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
+        </div>
+
+    <!-- ========================================== -->
+    <!-- 畫面 2 & 3：新增投稿彈窗 (Add Post Modal) -->
+    <!-- ========================================== -->
+    <div id="addModal" class="hidden absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col justify-end z-40 transition-all">
+        <div class="bg-white rounded-t-[32px] max-h-[90%] flex flex-col overflow-hidden shadow-2xl">
+            <!-- Header -->
+            <div class="flex justify-between items-center p-5 border-b border-gray-100">
+                <h2 class="text-lg font-bold text-gray-800">新增投稿</h2>
+                <button onclick="toggleModal('addModal', false)" class="text-gray-400 hover:text-gray-600 cursor-pointer p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <!-- 表單內容滾動區 -->
+            <div class="flex-1 overflow-y-auto p-5 space-y-5 no-scrollbar">
+                <!-- 標記狀態 -->
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-2">標記狀態</label>
+                    <div class="flex gap-2">
+                        <button onclick="setFormStatus('bad')" id="formStatus-bad" class="flex-1 py-3 text-center rounded-xl font-bold text-sm border-2 border-red-500 bg-red-500 text-white cursor-pointer transition-all">差 🔴</button>
+                        <button onclick="setFormStatus('good')" id="formStatus-good" class="flex-1 py-3 text-center rounded-xl font-bold text-sm border border-gray-200 text-gray-600 bg-gray-50 cursor-pointer transition-all">良 🟢</button>
+                        <button onclick="setFormStatus('improved')" id="formStatus-improved" class="flex-1 py-3 text-center rounded-xl font-bold text-sm border border-gray-200 text-gray-600 bg-gray-50 cursor-pointer transition-all">已改善 🔵</button>
+                    </div>
+                </div>
+
+                <!-- 定位位置 -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs font-bold text-gray-700">定位位置</label>
+                        <button onclick="triggerMapSelect()" class="flex items-center gap-1 bg-blue-50 text-[#4A82A6] px-2.5 py-1 rounded-full text-xs font-bold cursor-pointer hover:bg-blue-100 transition-all">
+                            <i class="fa-solid fa-map-location-dot"></i> 從地圖選取
+                        </button>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" value="25.034262" readonly class="flex-1 bg-gray-100 border border-gray-200 rounded-xl p-3 text-sm text-gray-500 outline-none">
+                        <input type="text" value="121.446059" readonly class="flex-1 bg-gray-100 border border-gray-200 rounded-xl p-3 text-sm text-gray-500 outline-none">
+                    </div>
+                </div>
+
+                <!-- 分類標籤 (下拉式選單) -->
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-2">分類標籤 *</label>
+                    <div class="relative">
+                        <!-- 確保 Select 有基礎高度與樣式，免除因為樣式覆蓋導致選單消失的問題 -->
+                        <select id="categorySelect" class="w-full bg-white border border-gray-200 rounded-xl p-3.5 text-sm text-gray-700 outline-none cursor-pointer focus:border-[#4A82A6] block min-h-[50px]">
+                            <!-- 由 JS 動態依據模式填充 -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 原因描述 -->
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-2">原因描述 *</label>
+                    <textarea placeholder="請詳細描述現狀、環境問題或潛力點特徵..." rows="3" class="w-full border border-gray-200 rounded-xl p-3 text-sm text-gray-700 outline-none focus:border-[#4A82A6] resize-none"></textarea>
+                </div>
+
+                <!-- 優化建議 -->
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-2">優化建議</label>
+                    <textarea placeholder="請提供您寶貴的改善想法或創生提案..." rows="3" class="w-full border border-gray-200 rounded-xl p-3 text-sm text-gray-700 outline-none focus:border-[#4A82A6] resize-none"></textarea>
+                </div>
+
+                <!-- 照片證明區 -->
+                <div>
+                    <label class="text-xs font-bold text-gray-700 block mb-2">照片證明 *</label>
+                    <div id="photoUploadContainer">
+                        <!-- 由 JS 根據狀態動態變形 -->
+                    </div>
+                </div>
+
+                <!-- 提交按鈕 -->
+                <button onclick="submitPost()" class="w-full bg-[#4A82A6] text-white py-3.5 rounded-xl font-bold text-sm shadow-md cursor-pointer active:scale-[0.99] transition-all mt-4">
+                    提交通報
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 畫面 4：投稿詳細彈窗 (Post Detail Modal) -->
+    <!-- ========================================== -->
+    <div id="detailModal" class="hidden absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col justify-end z-40 transition-all">
+        <div class="bg-white rounded-t-[32px] h-[85%] flex flex-col overflow-hidden shadow-2xl">
+            <!-- Header -->
+            <div class="flex justify-between items-center p-5 border-b border-gray-100">
+                <div class="flex items-center gap-2">
+                    <span id="detailDot" class="w-2.5 h-2.5 rounded-full"></span>
+                    <span id="detailCategory" class="text-sm font-bold text-[#4A82A6]">分類標籤</span>
+                </div>
+                <button onclick="toggleModal('detailModal', false)" class="text-gray-400 hover:text-gray-600 cursor-pointer p-1"><i class="fa-solid fa-circle-xmark text-2xl"></i></button>
+            </div>
+
+            <!-- 詳細內容滾動區 -->
+            <div class="flex-1 overflow-y-auto p-5 space-y-5 no-scrollbar">
+                <div>
+                    <div class="flex justify-between items-start">
+                        <h2 id="detailTitle" class="text-xl font-bold text-gray-800">標題</h2>
+                        <span id="detailTime" class="text-xs text-gray-400 pt-1">時間</span>
+                    </div>
+                    <p id="detailLocation" class="text-xs text-gray-500 mt-1.5 font-medium"><i class="fa-solid fa-location-dot text-gray-400 mr-1"></i>位置</p>
+                </div>
+
+                <div>
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">原因描述</h4>
+                    <p id="detailDesc" class="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-100">詳細描述內容</p>
+                </div>
+
+                <!-- 照片排版區 -->
+                <div id="detailPhotoContainer">
+                    <!-- 由 JS 動態生成單圖或對比圖 -->
+                </div>
+
+                <!-- 社群互動按鈕區 -->
+                <div class="border-t border-b border-gray-100 py-3.5">
+                    <div class="flex justify-around items-center">
+                        <button onclick="interact('like')" class="flex flex-col items-center gap-1 group text-gray-600 cursor-pointer">
+                            <i class="fa-regular fa-thumbs-up text-lg group-hover:scale-110 text-gray-500 transition-all"></i>
+                            <span id="detailLikesBtn" class="text-xs font-semibold">附議 (+12)</span>
+                        </button>
+                        <button onclick="focusCommentInput()" class="flex flex-col items-center gap-1 group text-gray-600 cursor-pointer">
+                            <i class="fa-regular fa-lightbulb text-lg group-hover:scale-110 text-gray-500 transition-all"></i>
+                            <span class="text-xs font-semibold">給建議</span>
+                        </button>
+                        <button onclick="interact('agree')" class="flex flex-col items-center gap-1 group text-gray-600 cursor-pointer">
+                            <i class="fa-regular fa-square-check text-lg group-hover:scale-110 text-gray-500 transition-all"></i>
+                            <span id="detailAgreesBtn" class="text-xs font-semibold">認同 (22)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 留言與建議區 -->
+                <div class="space-y-3 pb-8">
+                    <h3 id="commentSectionTitle" class="text-sm font-bold text-gray-800">留言與建議區 (3)</h3>
+                    
+                    <!-- 留言列表 -->
+                    <div id="commentsContainer" class="space-y-2.5">
+                        <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-bold text-gray-700">市民 A</span>
+                                <span class="text-[10px] text-gray-400">1小時前</span>
+                            </div>
+                            <p class="text-xs text-gray-600 leading-normal">這個路口真的很危險，希望能趕快改善！支持！</p>
+                        </div>
+                    </div>
+
+                    <!-- 留言輸入框 -->
+                    <div class="flex gap-2 items-center mt-3 pt-2">
+                        <input id="commentInput" type="text" placeholder="留下你的留言或實用修復建議..." class="flex-1 bg-gray-100 border border-gray-200 rounded-full px-4 py-2.5 text-xs text-gray-700 outline-none focus:bg-white focus:border-[#4A82A6]">
+                        <button onclick="addComment()" class="w-9 h-9 bg-[#4A82A6] text-white rounded-full flex justify-center items-center shadow-sm cursor-pointer active:scale-95 transition-all shrink-0">
+                            <i class="fa-solid fa-paper-plane text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模擬微調地圖選點提示 -->
+    <div id="mapSelectorToast" class="hidden absolute top-10 inset-x-10 bg-gray-900/95 text-white p-4 rounded-xl shadow-2xl z-50 text-center text-xs space-y-2">
+        <p class="font-bold">🎯 已開啟模擬地圖微調選點</p>
+        <p class="text-gray-400">滑鼠拖曳十字針或點擊確認完成座標微調設定</p>
+        <button onclick="this.parentElement.classList.add('hidden')" class="bg-white/20 px-3 py-1 rounded font-bold">我知道了</button>
+    </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 核心數據與互動控制邏輯 (JavaScript) -->
+    <!-- ========================================== -->
+    <script>
+        // 全域狀態庫
+        let currentMode = 'traffic'; // traffic | tourism
+        let currentFilter = 'all'; // all | bad | good | improved
+        let activePost = null;
+        let postStatus = 'bad'; 
+
+        // 核心展示數據
+        const postData = {
+            traffic: [
+                { id: 1, title: '路口廣告牆嚴重遮擋視線', desc: '新莊區中正路大門出口廣告牌過大，車輛駛出時容易發生「鬼探頭」高風險，轉彎車輛常被遮擋死角，建議盡速與建商溝通拆除或後退，保障路權。', status: 'bad', category: '視線死角', likes: 12, agrees: 22, commentsCount: 3, timestamp: '2小時前', location: '新莊區中正路 514 號旁' },
+                { id: 2, title: '中正路安全庇護島改善完成', desc: '原本斑馬線過長且缺乏任何行車緩衝防護，經過工務局重新退縮斑馬線並增加大型實體行人庇護島後，長輩跟推車市民過馬路安全多了，優良範例！', status: 'improved', category: '友善交通示範', likes: 45, agrees: 31, commentsCount: 2, timestamp: '1天前', location: '新莊區中正路與建國一路口' }
+            ],
+            tourism: [
+                { id: 3, title: '老街歷史記憶老牆傾頹缺乏維護', desc: '此處具備百年的紅磚老建築文化故事，是早期在地發展的關鍵起點。但目前周邊堆滿垃圾、雜草叢生，極度需要被專業修復或整合規劃成故事長廊。', status: 'bad', category: '在地歷史記憶', likes: 31, agrees: 19, commentsCount: 1, timestamp: '3小時前', location: '新莊老街後巷空地' },
+                { id: 4, title: '廢棄舊公有市場完美轉型文創聚落', desc: '原本荒廢閒置多年的老舊菜市場，經過在地青年創生團隊的硬體活化，動線流暢乾淨，假日引進文創市集與工藝手作坊，完美保留了庶民歷史記憶。', status: 'improved', category: '模範創生亮點', likes: 88, agrees: 56, commentsCount: 4, timestamp: '2天前', location: '新莊第一公有零售市場舊址' }
+            ]
+        };
+
+        const categories = {
+            traffic: [
+                '視線死角', '行人空間受壓迫', '標線與號誌不清', '常態違規熱點', '動線交織衝突', 
+                '路面硬體損壞', '無障礙設施缺失', '大眾運輸候車不佳', '夜間照明不足', '友善交通示範'
+            ],
+            tourism: [
+                '潛力秘境打卡點', '閒置空間待活化', '在地歷史記憶', '導覽與指標不足', '基礎設施匱乏', 
+                '徒步區規劃提案', '景觀生態破壞', '觀光停車與接駁痛點', '特色產業聚落', '模範創生亮點'
+            ]
+        };
+
+        // 初始化
+        window.onload = function() {
+            renderPosts();
+            setupFormDropdown();
+            setFormStatus('bad');
+        };
+
+        // 畫面導覽控制
+        function switchView(viewId) {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('homeScreen').classList.add('hidden');
+            
+            if(viewId === 'home') document.getElementById('homeScreen').classList.remove('hidden');
+            if(viewId === 'login') document.getElementById('loginScreen').classList.remove('hidden');
+        }
+
+        // 模式切換 (交通 / 觀光)
+        function setMode(mode) {
+            currentMode = mode;
+            const trafficBtn = document.getElementById('trafficBtn');
+            const tourismBtn = document.getElementById('tourismBtn');
+            const fabBtn = document.getElementById('fabBtn');
+            const mapBadge = document.getElementById('mapBadge');
+            const mapMarkerIcon = document.getElementById('mapMarkerIcon');
+
+            if(mode === 'traffic') {
+                trafficBtn.className = "flex-1 py-2.5 text-center font-bold text-sm rounded-lg transition-all bg-[#4A82A6] text-white cursor-pointer";
+                tourismBtn.className = "flex-1 py-2.5 text-center font-bold text-sm rounded-lg transition-all text-gray-500 cursor-pointer";
+                fabBtn.className = "absolute right-5 bottom-20 w-14 h-14 bg-[#4A82A6] rounded-full flex justify-center items-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer z-30";
+                mapBadge.innerText = "🚦 交通模式";
+                mapMarkerIcon.className = "fa-solid fa-location-crosshairs text-4xl text-[#4A82A6] animate-pulse";
+            } else {
+                trafficBtn.className = "flex-1 py-2.5 text-center font-bold text-sm rounded-lg transition-all text-gray-500 cursor-pointer";
+                tourismBtn.className = "flex-1 py-2.5 text-center font-bold text-sm rounded-lg transition-all bg-[#5C9EAD] text-white cursor-pointer";
+                fabBtn.className = "absolute right-5 bottom-20 w-14 h-14 bg-[#5C9EAD] rounded-full flex justify-center items-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer z-30";
+                mapBadge.innerText = "🏞️ 觀光模式";
+                mapMarkerIcon.className = "fa-solid fa-mountain-sun text-4xl text-[#5C9EAD] animate-pulse";
+            }
+            renderPosts();
+            setupFormDropdown();
+        }
+
+        // 篩選過濾器切換
+        function setFilter(filterType) {
+            currentFilter = filterType;
+            ['all', 'bad', 'good', 'improved'].forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                if(f === filterType) {
+                    btn.className = "px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-full cursor-pointer transition-all";
+                } else {
+                    btn.className = "px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full flex items-center gap-1.5 cursor-pointer transition-all";
+                }
+            });
+            renderPosts();
+        }
+
+        // 渲染最近動態貼文
+        function renderPosts() {
+            const container = document.getElementById('postsList');
+            container.innerHTML = '';
+            
+            const filtered = postData[currentMode].filter(post => {
+                if (currentFilter === 'all') return true;
+                return post.status === currentFilter;
+            });
+
+            if(filtered.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 text-center py-6">此篩選條件下目前暫無投稿記錄</p>`;
+                return;
+            }
+
+            filtered.forEach(post => {
+                let statusColor = '#D9534F'; // bad
+                if(post.status === 'good') statusColor = '#5CB85C';
+                if(post.status === 'improved') statusColor = '#4A90E2';
+
+                const div = document.createElement('div');
+                div.className = "flex bg-white rounded-xl p-3.5 border border-gray-200/60 shadow-sm cursor-pointer active:bg-gray-50 transition-all";
+                div.onclick = () => openDetail(post);
+                div.innerHTML = `
+                    <div class="w-1.5 rounded-full mr-3 shrink-0" style="background-color: ${statusColor}"></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-center gap-2 mb-1">
+                            <h4 class="text-sm font-bold text-gray-800 truncate">${post.title}</h4>
+                            <span class="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-sm shrink-0 font-medium">${post.category}</span>
+                        </div>
+                        <p class="text-xs text-gray-500 truncate mb-2.5">${post.desc}</p>
+                        <div class="flex gap-4 text-[11px] font-semibold text-gray-400">
+                            <span><i class="fa-regular fa-thumbs-up mr-1"></i>附議:${post.likes}</span>
+                            <span><i class="fa-regular fa-comment mr-1"></i>留言:${post.commentsCount}</span>
+                            <span class="ml-auto font-normal text-gray-400 text-[10px]">${post.timestamp}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // 彈窗開啟/關閉控制
+        function toggleModal(modalId, show) {
+            const modal = document.getElementById(modalId);
+            if(show) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        // 動態填充表單下拉選單標籤
+        function setupFormDropdown() {
+            const select = document.getElementById('categorySelect');
+            select.innerHTML = '<option value="">請選擇對應的專屬分類標籤...</option>';
+            categories[currentMode].forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.innerText = cat;
+                select.appendChild(opt);
+            });
+        }
+
+        // 設置投稿表單狀態與照片區變形邏輯 (強制前後對比照機制)
+        function setFormStatus(status) {
+            postStatus = status;
+            ['bad', 'good', 'improved'].forEach(s => {
+                const btn = document.getElementById(`formStatus-${s}`);
+                if(s === status) {
+                    let bgClass = "bg-red-500 border-red-500 text-white";
+                    if(s === 'good') bgClass = "bg-green-500 border-green-500 text-white";
+                    if(s === 'improved') bgClass = "bg-blue-500 border-blue-500 text-white";
+                    btn.className = `flex-1 py-3 text-center rounded-xl font-bold text-sm border-2 ${bgClass} cursor-pointer transition-all`;
+                } else {
+                    btn.className = "flex-1 py-3 text-center rounded-xl font-bold text-sm border border-gray-200 text-gray-600 bg-gray-50 cursor-pointer transition-all";
+                }
+            });
+
+            const photoContainer = document.getElementById('photoUploadContainer');
+            if(status === 'improved') {
+                photoContainer.innerHTML = `
+                    <div class="flex gap-2">
+                        <div class="flex-1 border-2 border-dashed border-blue-300 rounded-xl p-5 bg-blue-50/40 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-blue-50">
+                            <i class="fa-solid fa-camera text-xl text-blue-500 mb-1"></i>
+                            <span class="text-xs font-bold text-blue-600">改善前 (Before) *</span>
+                            <span class="text-[9px] text-gray-400 mt-0.5">點擊模擬上傳</span>
+                        </div>
+                        <div class="flex-1 border-2 border-dashed border-blue-300 rounded-xl p-5 bg-blue-50/40 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-blue-50">
+                            <i class="fa-solid fa-camera text-xl text-blue-500 mb-1"></i>
+                            <span class="text-xs font-bold text-blue-600">改善後 (After) *</span>
+                            <span class="text-[9px] text-gray-400 mt-0.5">點擊模擬上傳</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                photoContainer.innerHTML = `
+                    <div class="w-full border-2 border-dashed border-gray-200 rounded-xl p-6 bg-gray-50 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-100">
+                        <i class="fa-solid fa-camera text-2xl text-gray-400 mb-1.5"></i>
+                        <span class="text-xs font-medium text-gray-500">點擊上傳現場清晰照片</span>
+                    </div>
+                `;
+            }
+        }
+
+        // 模擬選點微調提示器
+        function triggerMapSelect() {
+            document.getElementById('mapSelectorToast').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('mapSelectorToast').classList.add('hidden');
+            }, 4000);
+        }
+
+        // 新增通報確認提交
+        function submitPost() {
+            alert("✨ 模擬資料寫入成功！本通報已無痛打包並準備同步至後端資料庫中。");
+            toggleModal('addModal', false);
+        }
+
+        // 打開貼文詳情介面與數據綁定 (畫面 4)
+        function openDetail(post) {
+            activePost = post;
+            let statusColor = '#D9534F';
+            if(post.status === 'good') statusColor = '#5CB85C';
+            if(post.status === 'improved') statusColor = '#4A90E2';
+
+            document.getElementById('detailDot').style.backgroundColor = statusColor;
+            document.getElementById('detailCategory').innerText = post.category;
+            document.getElementById('detailTitle').innerText = post.title;
+            document.getElementById('detailDesc').innerText = post.desc;
+            document.getElementById('detailLocation').innerHTML = `<i class="fa-solid fa-location-dot text-gray-400 mr-1"></i> 座標範圍：${post.location} (25.034, 121.446)`;
+            document.getElementById('detailTime').innerText = post.timestamp;
+            
+            document.getElementById('detailLikesBtn').innerText = `附議 (+${post.likes})`;
+            document.getElementById('detailAgreesBtn').innerText = `認同 (${post.agrees})`;
+            document.getElementById('commentSectionTitle').innerText = `留言與建議區 (${post.commentsCount})`;
+
+            const photoBox = document.getElementById('detailPhotoContainer');
+            if(post.status === 'improved') {
+                photoBox.innerHTML = `
+                    <div class="flex gap-2">
+                        <div class="flex-1 bg-gray-100 h-28 rounded-xl border border-gray-200 flex items-center justify-center"><span class="text-xs font-bold text-gray-400">Before 歷史對比照</span></div>
+                        <div class="flex-1 bg-blue-50/60 h-28 rounded-xl border border-blue-100 flex items-center justify-center"><span class="text-xs font-bold text-blue-400">After 改善成果照</span></div>
+                    </div>
+                `;
+            } else {
+                photoBox.innerHTML = `
+                    <div class="w-full bg-gray-100 h-36 rounded-xl border border-gray-200 flex items-center justify-center"><span class="text-xs font-bold text-gray-400">通報現場實況照片</span></div>
+                `;
+            }
+
+            toggleModal('detailModal', true);
+        }
+
+        // 社群互動點讚計算模擬
+        function interact(type) {
+            if(!activePost) return;
+            if(type === 'like') {
+                activePost.likes++;
+                document.getElementById('detailLikesBtn').innerText = `附議 (+${activePost.likes})`;
+            } else if(type === 'agree') {
+                activePost.agrees++;
+                document.getElementById('detailAgreesBtn').innerText = `認同 (${activePost.agrees})`;
+            }
+            renderPosts();
+        }
+
+        // 自動聚焦留言
+        function focusCommentInput() {
+            document.getElementById('commentInput').focus();
+        }
+
+        // 添加留言
+        function addComment() {
+            const input = document.getElementById('commentInput');
+            if(!input.value.trim()) return;
+
+            const container = document.getElementById('commentsContainer');
+            const div = document.createElement('div');
+            div.className = "bg-gray-50 p-3 rounded-xl border border-gray-100";
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-xs font-bold text-gray-700">我 (熱心市民)</span>
+                    <span class="text-[10px] text-gray-400">剛才</span>
+                </div>
+                <p class="text-xs text-gray-600 leading-normal">${input.value}</p>
+            `;
+            container.appendChild(div);
+            
+            if(activePost) {
+                activePost.commentsCount++;
+                document.getElementById('commentSectionTitle').innerText = `留言與建議區 (${activePost.commentsCount})`;
+            }
+            input.value = '';
+            renderPosts();
+        }
+    </script>
+</body>
+</html>
